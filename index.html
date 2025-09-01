@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Flashcard Quiz</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    #game { display: none; margin-top: 2rem; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; }
+    textarea { width: 100%; height: 120px; }
+    #question { font-weight: bold; margin: 1rem 0; }
+    #feedback { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Flashcard Quiz</h1>
+
+  <p>Paste your data here (each line: <code>reverse|prompt|answer</code>):</p>
+  <textarea id="dataInput" placeholder="Example:
+1|Capital of France|Paris
+0|2+2|4"></textarea>
+  <br>
+  <button id="startBtn">Start Game</button>
+
+  <div id="game">
+    <p id="question"></p>
+    <input type="text" id="answerInput" placeholder="Type your answer">
+    <button id="submitBtn">Submit</button>
+    <p id="feedback"></p>
+    <p id="score"></p>
+  </div>
+
+  <script>
+    let flashcards = [];
+    let totalRight = 0, totalWrong = 0, turns = 0;
+    let currentCard = null, reverse = false;
+    let retryMode = false;
+    let requiredAnswer = "";
+    let playing = true;
+
+    function parseInput(text) {
+      const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+      return lines.map(row => {
+        const parts = row.split("|");
+        if (parts.length !== 3) return null;
+        return {
+          reverse: parts[0].trim() === "1",
+          prompt: parts[1].trim(),
+          answer: parts[2].trim()
+        };
+      }).filter(card => card !== null);
+    }
+
+    function resetGame() {
+      totalRight = 0;
+      totalWrong = 0;
+      turns = 0;
+      document.getElementById("feedback").textContent = "Score reset!";
+      document.getElementById("score").textContent = "";
+    }
+
+    function nextCard() {
+      if (!playing) {
+        document.getElementById("feedback").textContent = "Thanks for playing!";
+        document.getElementById("question").textContent = "";
+        return;
+      }
+
+      turns++;
+      const idx = Math.floor(Math.random() * flashcards.length);
+      currentCard = flashcards[idx];
+
+      reverse = currentCard.reverse ? Math.random() < 0.5 : false;
+      document.getElementById("answerInput").value = "";
+      document.getElementById("feedback").textContent = "";
+      retryMode = false;
+
+      if (reverse) {
+        requiredAnswer = currentCard.prompt;
+        document.getElementById("question").textContent =
+          `Enter the prompt for: "${currentCard.answer}"`;
+      } else {
+        requiredAnswer = currentCard.answer;
+        document.getElementById("question").textContent =
+          `Enter the answer for: "${currentCard.prompt}"`;
+      }
+    }
+
+    function checkAnswer() {
+      const input = document.getElementById("answerInput").value.trim();
+
+      if (retryMode) {
+        if (input === requiredAnswer) {
+          document.getElementById("feedback").textContent = "Correct, moving on!";
+          setTimeout(nextCard, 1000);
+        } else {
+          document.getElementById("feedback").textContent =
+            "That was wrong. Try again:";
+        }
+        return;
+      }
+
+      if (input === requiredAnswer) {
+        totalRight++;
+        document.getElementById("feedback").textContent = "Good job!";
+      } else {
+        totalWrong++;
+        document.getElementById("feedback").textContent =
+          `Wrong! Copy the correct answer here:`;
+        retryMode = true;
+      }
+
+      document.getElementById("score").textContent =
+        `Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
+
+      if (!retryMode) {
+        if (turns % 10 === 0) {
+          setTimeout(checkpoint, 1000);
+        } else {
+          setTimeout(nextCard, 1500);
+        }
+      }
+    }
+
+    function checkpoint() {
+      alert(
+        `That was ${turns} turns.\n` +
+        `Correct: ${totalRight}, Wrong: ${totalWrong}`
+      );
+
+      const resetChoice = confirm("Reset score?");
+      if (resetChoice) resetGame();
+
+      const playChoice = confirm("Keep playing?");
+      if (!playChoice) {
+        playing = false;
+        document.getElementById("feedback").textContent = "Thanks for playing!";
+        document.getElementById("question").textContent = "";
+        return;
+      }
+
+      nextCard();
+    }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      const raw = document.getElementById("dataInput").value;
+      flashcards = parseInput(raw);
+      if (flashcards.length === 0) {
+        alert("Invalid input format. Use reverse|prompt|answer per line.");
+        return;
+      }
+      document.getElementById("game").style.display = "block";
+      resetGame();
+      playing = true;
+      nextCard();
+    });
+
+    document.getElementById("submitBtn").addEventListener("click", checkAnswer);
+  </script>
+</body>
+</html>
