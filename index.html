@@ -31,6 +31,7 @@
   </div>
 
   <script>
+    // Wait for DOM to load before running any JS
     document.addEventListener("DOMContentLoaded", () => {
       let flashcards = [];
       let shuffled = [];
@@ -114,6 +115,7 @@
         }
       }
 
+      // Start button initializes the game safely
       document.getElementById("startBtn").addEventListener("click", () => {
         const raw = document.getElementById("dataInput").value;
         flashcards = parseInput(raw);
@@ -129,7 +131,6 @@
       });
 
       document.getElementById("submitBtn").addEventListener("click", checkAnswer);
-
       document.getElementById("answerInput").addEventListener("keyup", (e) => {
         if (e.key === "Enter") checkAnswer();
       });
