@@ -6,15 +6,24 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     #game { display: none; margin-top: 2rem; }
-    button { margin-top: 0.5rem; padding: 0.5rem 1rem; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; cursor: pointer; }
     textarea { width: 100%; height: 120px; }
-    #question { font-weight: bold; margin: 1rem 0; }
-    #feedback { margin-top: 0.5rem; white-space: pre-line; }
+    #question { font-weight: bold; margin: 1rem 0; font-size: 1.2rem; }
+    #feedback { margin-top: 0.5rem; white-space: pre-line; font-weight: bold; }
+    
+    /* Styles for the game over state */
+    .hidden { display: none !important; }
+    #restartBtn { background-color: #4CAF50; color: white; border: none; }
   </style>
 </head>
 <body>
   <h1>Flashcard Quiz</h1>
-  <p><a href="/quiz2/beta/">beta</a></p>
+  
+  <p>
+      <a href="https://gracetai26.github.io/quiz2/">Back to Main</a> | 
+      <a href="/quiz2/beta/">beta</a>
+  </p>
+  <p><em>Update: The game now finishes after one pass through the deck (no infinite loop). Answers are case-insensitive.</em></p>
 
   <p>Paste your data here (each line: <code>reverse|prompt|answer</code>):</p>
   <textarea id="dataInput" placeholder="Example:
@@ -25,14 +34,19 @@
 
   <div id="game">
     <p id="question"></p>
-    <input type="text" id="answerInput" placeholder="Type your answer">
-    <button id="submitBtn">Submit</button>
+    
+    <div id="inputArea">
+      <input type="text" id="answerInput" placeholder="Type your answer">
+      <button id="submitBtn">Submit</button>
+    </div>
+
     <p id="feedback"></p>
     <p id="score"></p>
+    
+    <button id="restartBtn" class="hidden">Play Again</button>
   </div>
 
   <script>
-    // Wait for DOM to load before running any JS
     document.addEventListener("DOMContentLoaded", () => {
       let flashcards = [];
       let shuffled = [];
@@ -55,8 +69,14 @@
 
       function resetGame() {
         totalRight = 0; totalWrong = 0; turns = 0;
-        document.getElementById("feedback").textContent = "Score reset!";
+        document.getElementById("feedback").textContent = "";
         document.getElementById("score").textContent = "";
+        
+        // Reset UI: Show inputs, hide restart button
+        document.getElementById("inputArea").classList.remove("hidden");
+        document.getElementById("restartBtn").classList.add("hidden");
+        document.getElementById("answerInput").value = "";
+        document.getElementById("answerInput").focus();
       }
 
       function shuffleArray(array) {
@@ -68,8 +88,13 @@
       }
 
       function nextCard() {
-        if (!playing || flashcards.length === 0) return;
-        if (shuffled.length === 0) shuffled = shuffleArray([...flashcards]);
+        if (!playing) return;
+
+        // Stop if no cards left
+        if (shuffled.length === 0) {
+            endGame();
+            return;
+        }
 
         currentCard = shuffled.pop();
         turns++;
@@ -89,16 +114,36 @@
           document.getElementById("question").textContent =
             `Enter the answer for: "${currentCard.prompt}"`;
         }
+        
+        document.getElementById("answerInput").focus();
+      }
+
+      function endGame() {
+        playing = false;
+        document.getElementById("question").textContent = "Quiz Complete!";
+        document.getElementById("feedback").textContent = "You finished all cards!";
+        document.getElementById("score").textContent = `Final Results - Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
+        
+        // Hide inputs and show restart button
+        document.getElementById("inputArea").classList.add("hidden");
+        document.getElementById("restartBtn").classList.remove("hidden");
       }
 
       function checkAnswer() {
+        if (!playing) return;
+        
         const input = document.getElementById("answerInput").value.trim();
-        if (input === requiredAnswer) {
+        
+        // CASE INSENSITIVE CHECK
+        if (input.toLowerCase() === requiredAnswer.toLowerCase()) {
           retryMode = false;
           totalRight++;
           document.getElementById("feedback").textContent = "Correct!";
+          
+          // Original scoring format restored
           document.getElementById("score").textContent =
             `Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
+          
           setTimeout(nextCard, 1000);
         } else {
           totalWrong++;
@@ -106,17 +151,17 @@
           if (wrongAttempts >= 3) {
             retryMode = true;
             document.getElementById("feedback").textContent =
-              `Too many tries! The correct answer is: ${requiredAnswer}\nCopy it exactly to continue.`;
+              `Too many tries! The correct answer is: ${requiredAnswer}\nType it to continue.`;
           } else {
             document.getElementById("feedback").textContent =
               `Wrong! Try again (${wrongAttempts}/3)`;
           }
+          // Original scoring format restored
           document.getElementById("score").textContent =
             `Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
         }
       }
 
-      // Start button initializes the game safely
       document.getElementById("startBtn").addEventListener("click", () => {
         const raw = document.getElementById("dataInput").value;
         flashcards = parseInput(raw);
@@ -126,9 +171,13 @@
         }
         shuffled = shuffleArray([...flashcards]);
         document.getElementById("game").style.display = "block";
-        resetGame();
         playing = true;
+        resetGame();
         nextCard();
+      });
+
+      document.getElementById("restartBtn").addEventListener("click", () => {
+        document.getElementById("startBtn").click();
       });
 
       document.getElementById("submitBtn").addEventListener("click", checkAnswer);
