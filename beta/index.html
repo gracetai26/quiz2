@@ -18,7 +18,12 @@
 </head>
 <body>
   <h1>Flashcard Quiz</h1>
-  <p><a href="/quiz2/beta/">beta: this update allows the set to finish</a></p>
+  
+  <p>
+      <a href="https://gracetai26.github.io/quiz2/">Back to Main</a> | 
+      <a href="/quiz2/beta/">beta</a>
+  </p>
+  <p><em>Update: The game now finishes after one pass through the deck (no infinite loop). Answers are case-insensitive.</em></p>
 
   <p>Paste your data here (each line: <code>reverse|prompt|answer</code>):</p>
   <textarea id="dataInput" placeholder="Example:
@@ -85,8 +90,7 @@
       function nextCard() {
         if (!playing) return;
 
-        // --- CHANGED LOGIC HERE ---
-        // If no cards left, end the game instead of refilling
+        // Stop if no cards left
         if (shuffled.length === 0) {
             endGame();
             return;
@@ -94,7 +98,6 @@
 
         currentCard = shuffled.pop();
         turns++;
-        // 50% chance to swap prompt/answer if reverse is enabled for this card
         reverse = currentCard.reverse ? Math.random() < 0.5 : false;
 
         document.getElementById("answerInput").value = "";
@@ -112,14 +115,14 @@
             `Enter the answer for: "${currentCard.prompt}"`;
         }
         
-        // Focus back on input for speed
         document.getElementById("answerInput").focus();
       }
 
       function endGame() {
         playing = false;
         document.getElementById("question").textContent = "Quiz Complete!";
-        document.getElementById("feedback").textContent = `You finished all cards!\nFinal Score: ${totalRight} Correct, ${totalWrong} Wrong`;
+        document.getElementById("feedback").textContent = "You finished all cards!";
+        document.getElementById("score").textContent = `Final Results - Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
         
         // Hide inputs and show restart button
         document.getElementById("inputArea").classList.add("hidden");
@@ -131,15 +134,16 @@
         
         const input = document.getElementById("answerInput").value.trim();
         
-        // Case-insensitive comparison (optional improvement)
+        // CASE INSENSITIVE CHECK
         if (input.toLowerCase() === requiredAnswer.toLowerCase()) {
           retryMode = false;
           totalRight++;
           document.getElementById("feedback").textContent = "Correct!";
-          document.getElementById("score").textContent =
-            `Progress: ${totalRight + totalWrong} / ${flashcards.length}`; // Shows progress out of total
           
-          // Delay before next card
+          // Original scoring format restored
+          document.getElementById("score").textContent =
+            `Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
+          
           setTimeout(nextCard, 1000);
         } else {
           totalWrong++;
@@ -152,12 +156,12 @@
             document.getElementById("feedback").textContent =
               `Wrong! Try again (${wrongAttempts}/3)`;
           }
+          // Original scoring format restored
           document.getElementById("score").textContent =
-             `Progress: ${totalRight + totalWrong} / ${flashcards.length}`;
+            `Turns: ${turns}, Correct: ${totalRight}, Wrong: ${totalWrong}`;
         }
       }
 
-      // Event Listeners
       document.getElementById("startBtn").addEventListener("click", () => {
         const raw = document.getElementById("dataInput").value;
         flashcards = parseInput(raw);
@@ -165,10 +169,7 @@
           alert("Invalid input format. Use reverse|prompt|answer per line.");
           return;
         }
-        
-        // Create a fresh shuffle
         shuffled = shuffleArray([...flashcards]);
-        
         document.getElementById("game").style.display = "block";
         playing = true;
         resetGame();
@@ -176,7 +177,6 @@
       });
 
       document.getElementById("restartBtn").addEventListener("click", () => {
-        // Just click start again to re-parse and re-shuffle
         document.getElementById("startBtn").click();
       });
 
