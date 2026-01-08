@@ -1,0 +1,4 @@
+- make input collapsible with one button
+- setting for "close enough" changes
+- rounds counter
+- embed previous sets in a cookie
